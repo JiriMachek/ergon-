@@ -1,0 +1,44 @@
+Ergon+ je řešení MES nabízené menším i průmyslovým pekárnám k řízení provozu a evidenci statistiky provozu. Chceme udělat systém pokud možno univerzální i pro lehce odlišným typ provozu, jako jsou mlýny.
+
+Celý systém se bude skládat střeh hlavních modulů:
+Za prvé. Skladové hospodářství. Představa je jednoduché skladové hospodářství které se stává z příjmového skladu surovin, z tohoto skladu bude docházet k výdeji surovin do výroby, tady výrobního skladu kde výrobní sklad budou v podstatě provozní zásobníky se surovinou jako jsou sila zásobníky a tak dále. Z tohoto provozního skladu budou suroviny odčerpány do výrobního procesu což je další hlavní modul, kde během navažování surovin do jednotlivých šarží bude docházet k odečtu materiálu z tohoto provozního skladu. Představa tedy je že bude existovat aplikace pro příjmový sklad postavená na Windows besed nazveme ji jako Ergon store, kde bude sedět skladník který bude přijímat dovezenou surovinu v pytlích nebo v kamionech ztotožní tuto dovezenou surovinu s objednávkou ze RP, a za skladní tuto surovinu na nějaké skladové místo v skladu surovin. Následně během výroby dostane povel převést surovinu do provozního skladu odkud bude probíhat odečet z výroby. Co chceme sledovat je množství suroviny na skladě, a především tracking tracing šarží dovezených surovin během výrobního procesu. Instalace mes může být Napojená na několik skladů respektive provozoven. Co nás zajímá jako výstupní informace jsou stavy skladů, skladové pohyby v nějaké jednoduché formě tedy příjem na sklad především. Výdej ze skladu do výroby bude součástí tracking/tracing výroby kde se budou logovat data z výroby. Po vyrobení produktu se produkt naskladní v expedičním skladu do boxů, tady další sklad bude takzvaně expediční, kde zaměstnanci skladu na základě zákaznických objednávek sestavují boxy s objednávkou a následně tyto boxy nakládají na automobil který jej rozváží k zákazníkům. U mlýnů je možné surovinu ukládat do expedičních zásobníků tedy nejedná se o konkrétní počítání výrobků ale o přesun mouk na volnou nakládku do kamionu. U mlýnů dále bude existovat aplikace pro příjem surovin na mostové váze, kde dovozce respektive řidič dohledá svůj záznam a provede příjem nebo výdej surovin.
+V expedičním skladu bude také počítač se lehce upraveným rozhraním na rozdíl od příjmového skladu tak, aby dokázal jednoduše vybírat zákaznické objednávky a ručně načítat množství produktů na skladě. Aplikace pro expediční sklad se bude jmenovat jako Ergon expert, a bude to Windows based aplikace. Pokud to půjde mohlo by to být i maui aplikace protože by bylo hezké využít tablety a mobilní telefony s Android nebo IOS.
+Určitě bude nutné ve výrobním skladu zajistit tuto důležitou funkcionalitu: na skladové místo což může být zásobník, nebo silo se nad sebe můžou navrstvit stejné suroviny s různou šarží od dodavatele. Při trekingu tracingu výroby a odpočtu spotřebovaného materiálu musíme získat informaci o tom ze které konkrétní šarže se provádí odběr materiálu tak abychom tak abysme tuto informaci uložili jako záznam při výrobě výrobní objednávky. Toto vrstvení materiálu nad sebou a postupné ubývání materiálu a zrušení.
+
+Další velký hlavní modul celého systému je takzvaně trekking and tracing výroby.
+Tento modul načítá výrobní objednávky ZRB, uložené v sql databázi naší, tedy importované přes rabbitmq nebo podobný systém do naší lokální databáze, kde výrobní příkaz se stává z produktu, čísla výrobního příkazu, množství, datum plánovaného startu výroby, počtu díží a velikost díže,. Tento výrobní příkaz bude možné vytvářet také na monitoru manažerského počítače nebo v případě importu ZRP tento výrobní příkaz lehce upravit. Je důležité říct že celý systém musí fungovat i bez ERP. Navažování surovin z výroby do díží se provádí pomocí PLC systému surovinového hospodářství se kterým bude náš mez komunikovat přes OPCUA server. Další komponenta která dokáže vážit díže je naše receptura váha kterou jsme vyvinuli nedá nedávné době, která si dokáže sáhnout přes síť přímo na náš sql server a data si sama načíst– myšleno seznam plánované výroby respektive výrobních příkazů. Co chceme sledovat je šarže suroviny která do každé díže spadla, evidovat požadovanou dávku versus skutečně navážou dávku, sledovat stav výrobního příkazu do jaké míry byl již splněn, a tyto informace zpětně odesílat do ERP systému. Během výroby mohou být prováděny laboratorní testy a výsledky těchto testů se přikládají jako záznam K výrobním šaržím respektive díží předpokládáme, že každý výrobní příkaz bude mít své unikátní ID, a každá díže bude mít své číslo u mlýnů se nebudou počítat díže ale výroba pojede dokud se nesplní celý výrobní příkaz. ZRP systému bude nutné importovat i receptury s, složení receptur, seznam surovin ze kterých receptury vyrábí skupiny surovin a tak dále. Receptury, materiál, složení receptur a tak dále musí být možné editovat i přímo u nás v mes, nebo se provádí aktualizace ERP.
+Pro komunikaci s moučným hospodářstvím tedy PLC systémem bude nutné vytvořit Windows službu jako OPCUA klienta který bude na pozadí komunikovat s OPCUA serverem UPLC, stahovat z něj data do databáze a naopak odesílat na plánované výrobní příkazy do jeho paměti proto bude potřeba v Ergon admin konzoli umožnit nakonfigurovat několik OPCUA serverů se všemi potřebnými identifikačními údaji a pod tento server dále naprogramovat OPCUA tagy které obsahují potřebné informace k trasování výroby.
+
+
+3 velký modul systému se bude zabývat sběrem dat spojených se spotřebou energie a vypouštěním emisí CO2.
+Předpokládám že vytvoříme Windows servis službu která bude na pozadí připojená i OPCUA sběrný modulům, ze kterých bude vyčítat spotřebu elektrické energie, plynu, stlačeného vzduchu, vody, CO 2 a tyto data budete ukládat do databáze pro pozdější analýzu spotřeby energií. I zde by tedy mělo být možné nakonfigurovat v administrátorské konzoli OPCV server+ OPCUI tagy, ve kterých se nachází informace potřebné k ukládání do databáze manažerská aplikace dále bude umět sestavit reporty spotřeby grafy koláčové grafy a spojit vyrobené množství produktů s jejich spotřebou energie. Tento energetický modul bude do systému zařazen postupně pozdější době a není potřeba jej teď hned řešit, ale je potřeba s ním počítat.
+
+
+
+Shrnutí:
+Vyvíjíme mez systém sestávající ze skladového hospodářství, treking racing výroby, a měření spotřeby energií. Jádrem systému bude počítač s Windows na kterém poběží SQL server(ideálně MySQL), na kterém se budou ukládat veškerá konfigurační a historická data. Celý systém může běžet samostatně, nebo bude ve většině případů připojen na ERP systém běžící na saas cloud, komunikující přes rabbitMQ nebo restapi. Lokální MySql server si bude stahovat z ERP data, a lokálně s nimi pracovat, ukládat tracking tracing výroby povolovat stroje sbírat data ze strojů sbírat data spotřeby elektrické energie, zajišťovat chod skladového hospodářství jak na příjmu surovin, tak na expedici surovin a sun začít data vracet zpět do IRB pro pozdější zpracování v ekonomickém modulu.
+Předpokládáme že na server PC poběží několik služeb– půjde o rabbitMQ komunikaci ERP, restapi rozhraní, dále služby zajišťující komunikaci S OPCUA serverem kde se bude povolovat moučné hospodářství (PLC Siemens), dále služba zajišťující sběr dat z energetických modulů přes OPCUA, na tomto počítači poběží administrátorské rozhraní pro konfiguraci systému které budeme využívat především my jako vývojáři.
+Další aplikace bude manažerská která bude k dispozici vedoucímu výroby a umožní mu kompletní přehled a statistiky výroby. Tato aplikace bude hlavní bod komunikace mezi naším systémem a zákazníkem. Dále zde bude aplikace pro příjmový sklad postavená na Windows, a běžící na úplně jiném počítači která bude zajišťovat příjem surovin do skladů, a vyskladnění surovin do výroby. Další aplikace bude na expedičním skladu která bude sloužit k expedici výrobků k zákazníkům, načítání zákaznických objednávek a tisku dodacích listů. Skladové aplikace by mohly byly postaveny i na mauve a fungovat na mobilních zařízeních.
+
+Moduly:
+	1. Skladové hospodářství
+	2. Tracking tracing výroby
+	3. Spotřeba energií
+
+Aplikace windows based:
+	1. Ergon.admin
+	2. Ergon.manager
+	3. Ergon.Store
+	4. Ergon.Expedo
+
+Aplikace Android/ios
+	1. Ergon.store
+	2. Ergon.expedo
+	3. Ergon.manager - zjednodušená verze 
+
+Služby:
+	1. RabitMQ to ERP
+	2. RestaPI to ERP
+	3. OpcUa Client to Siemens PLC
+	4. OpcUa Client to Energy I/O
+	
